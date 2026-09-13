@@ -7,7 +7,7 @@ Maintenance staff can view reported problems, assign requests to themselves, upd
 ## Main Features
 
 ### Students
-- Register and log in using a UFH student email
+- Register and log in using a UFH student email address 
 - Submit a maintenance request
 - Select the problem category and urgency
 - Add a description and optional photo
