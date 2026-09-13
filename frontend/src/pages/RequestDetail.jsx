@@ -1,22 +1,19 @@
 /**
  * Request details and update history.
- *
- * A student sees the facts and the history. The maintenance worker sees the
- * same, plus the action panel: take the job, move the status forward and add
- * progress notes.
+ * Refactored to fetch and update data directly from Supabase.
  */
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { api, fetchRequestImage } from '../api.js';
+import { supabase } from '../supabaseClient.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { Alert, SkeletonTable, StatusBadge, Timeline, Toast, UrgencyLabel } from '../components/Ui.jsx';
 import { formatDateTime, timeAgo } from '../utils/format.js';
 
-/** What the assigned worker can do next, given the current status. */
+/** Mapped to your Supabase database enum states */
 const NEXT_STATUS = {
-  Assigned: { status: 'In Progress', label: 'Start work' },
-  'In Progress': { status: 'Completed', label: 'Mark as completed' },
-  Completed: { status: 'Closed', label: 'Close request' }
+  assigned: { status: 'in_progress', label: 'Start work' },
+  in_progress: { status: 'resolved', label: 'Mark as completed' },
+  resolved: null
 };
 
 export default function RequestDetail() {
@@ -26,41 +23,72 @@ export default function RequestDetail() {
   const location = useLocation();
 
   const [data, setData] = useState(null);
-  const [photoUrl, setPhotoUrl] = useState(null);
   const [note, setNote] = useState('');
   const [statusComment, setStatusComment] = useState('');
   const [error, setError] = useState('');
   const [message, setMessage] = useState(location.state?.flash || '');
   const [busy, setBusy] = useState(false);
 
+  // Helper to fetch the ticket, join profile data, and format it for your existing UI
+  const fetchFullTicket = async () => {
+    const { data: ticket, error: tErr } = await supabase
+      .from('maintenance_tickets')
+      .select('*, reporter:profiles!reported_by(full_name, student_number), assignee:profiles!assigned_to(full_name, role)')
+      .eq('id', id)
+      .single();
+
+    if (tErr) throw tErr;
+
+    const { data: history, error: hErr } = await supabase
+      .from('ticket_updates')
+      .select('*, author:profiles!updated_by(full_name)')
+      .eq('ticket_id', id)
+      .order('created_at', { ascending: true });
+
+    if (hErr) throw hErr;
+
+    return {
+      request: {
+        id: ticket.id,
+        category: ticket.category_id,
+        residence: ticket.residence_building,
+        room: ticket.room_number,
+        urgency: ticket.urgency,
+        description: ticket.description,
+        status: ticket.status,
+        created_at: ticket.created_at,
+        updated_at: ticket.updated_at,
+        completed_at: ticket.status === 'resolved' ? ticket.updated_at : null,
+        student_name: ticket.reporter?.full_name || 'Student',
+        student_email: ticket.reporter?.student_number ? `${ticket.reporter.student_number}@ufh.ac.za` : '',
+        assigned_to: ticket.assigned_to,
+        assigned_name: ticket.assignee?.full_name,
+        assigned_trade: ticket.assignee?.role,
+        photo_url: ticket.photo_url
+      },
+      updates: history.map(u => ({
+        id: u.id,
+        created_at: u.created_at,
+        author_name: u.author?.full_name || 'Staff',
+        message: u.update_message
+      }))
+    };
+  };
+
   useEffect(() => {
-    api
-      .getRequest(id)
+    fetchFullTicket()
       .then(setData)
       .catch((err) => setError(err.message));
   }, [id]);
 
-  useEffect(() => {
-    if (!data?.request?.has_image) return undefined;
-    let objectUrl;
-    fetchRequestImage(id)
-      .then((url) => {
-        objectUrl = url;
-        setPhotoUrl(url);
-      })
-      .catch(() => {});
-    return () => {
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
-    };
-  }, [data?.request?.has_image, id]);
-
-  const run = async (action, successMessage) => {
+  const run = async (actionFn, successMessage) => {
     setError('');
     setMessage('');
     setBusy(true);
     try {
-      const result = await action();
-      setData(result);
+      await actionFn();
+      const updatedData = await fetchFullTicket();
+      setData(updatedData);
       setMessage(successMessage);
       setNote('');
       setStatusComment('');
@@ -69,6 +97,21 @@ export default function RequestDetail() {
     } finally {
       setBusy(false);
     }
+  };
+
+  // Supabase action functions to replace your previous API calls
+  const assignToMe = async () => {
+    await supabase.from('maintenance_tickets').update({ assigned_to: user.id, status: 'assigned' }).eq('id', id);
+    await supabase.from('ticket_updates').insert({ ticket_id: id, updated_by: user.id, update_message: 'Job assigned and claimed.' });
+  };
+
+  const updateStatus = async (newStatus, comment) => {
+    await supabase.from('maintenance_tickets').update({ status: newStatus }).eq('id', id);
+    await supabase.from('ticket_updates').insert({ ticket_id: id, updated_by: user.id, update_message: comment || `Status changed to ${newStatus.replace('_', ' ')}.` });
+  };
+
+  const addNote = async (noteText) => {
+    await supabase.from('ticket_updates').insert({ ticket_id: id, updated_by: user.id, update_message: noteText });
   };
 
   if (error && !data) return <Alert type="error">{error}</Alert>;
@@ -81,7 +124,7 @@ export default function RequestDetail() {
   }
 
   const { request, updates } = data;
-  const isMaintenance = user.role === 'maintenance';
+  const isMaintenance = ['maintenance', 'tradesperson', 'facilities_admin'].includes(user?.user_metadata?.role);
   const isMine = request.assigned_to === user.id;
   const next = NEXT_STATUS[request.status];
 
@@ -90,7 +133,7 @@ export default function RequestDetail() {
       <div className="detail-banner">
         <div>
           <h1>
-            #{request.id} &middot; {request.category}
+            #{request.id.slice(0, 8)} &middot; {request.category}
           </h1>
           <div className="meta">
             {request.residence}, room {request.room} &middot; logged {timeAgo(request.created_at)}
@@ -110,7 +153,7 @@ export default function RequestDetail() {
             <h2>Fault details</h2>
             <dl className="definitions">
               <dt>Reference</dt>
-              <dd>#{request.id}</dd>
+              <dd>#{request.id.slice(0, 8)}</dd>
 
               <dt>Student</dt>
               <dd>
@@ -123,9 +166,6 @@ export default function RequestDetail() {
 
               <dt>Room</dt>
               <dd>{request.room}</dd>
-
-              <dt>Category</dt>
-              <dd>{request.category}</dd>
 
               <dt>Urgency</dt>
               <dd>
@@ -157,10 +197,11 @@ export default function RequestDetail() {
               <dd>{request.completed_at ? formatDateTime(request.completed_at) : 'Not yet'}</dd>
             </dl>
 
-            {photoUrl && (
+            {/* Supabase returns the public photo URL directly, no need for blob generation */}
+            {request.photo_url && (
               <>
                 <h3 style={{ marginTop: '20px' }}>Photo from the student</h3>
-                <img className="photo" src={photoUrl} alt="Reported maintenance problem" />
+                <img className="photo" src={request.photo_url} alt="Reported maintenance problem" />
               </>
             )}
           </div>
@@ -175,9 +216,7 @@ export default function RequestDetail() {
                   <button
                     type="button"
                     disabled={busy}
-                    onClick={() =>
-                      run(() => api.assignRequest(request.id), 'Job assigned to you.')
-                    }
+                    onClick={() => run(assignToMe, 'Job assigned to you.')}
                   >
                     Assign to me
                   </button>
@@ -205,19 +244,14 @@ export default function RequestDetail() {
                         <button
                           type="button"
                           disabled={busy}
-                          onClick={() =>
-                            run(
-                              () => api.updateStatus(request.id, next.status, statusComment),
-                              `Status changed to ${next.status}.`
-                            )
-                          }
+                          onClick={() => run(() => updateStatus(next.status, statusComment), `Status changed to ${next.label}.`)}
                         >
                           {next.label}
                         </button>
                       </div>
                     </div>
                   ) : (
-                    <Alert type="info">This request is closed. No further changes are possible.</Alert>
+                    <Alert type="info">This request is resolved. No further changes are possible.</Alert>
                   )}
 
                   <div className="field" style={{ marginTop: '14px' }}>
@@ -233,7 +267,7 @@ export default function RequestDetail() {
                         type="button"
                         className="btn-secondary"
                         disabled={busy || note.trim().length < 3}
-                        onClick={() => run(() => api.addNote(request.id, note), 'Note added.')}
+                        onClick={() => run(() => addNote(note), 'Note added.')}
                       >
                         Add note
                       </button>

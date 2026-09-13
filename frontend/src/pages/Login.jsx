@@ -21,10 +21,19 @@ export default function Login() {
     event.preventDefault();
     setError('');
     setBusy(true);
+
+    // Enforce the UFH domain restriction on the frontend
+    if (!email.endsWith('@ufh.ac.za')) {
+      setError('You must use a valid University of Fort Hare (@ufh.ac.za) email address.');
+      setBusy(false);
+      return;
+    }
+
     try {
       await login(email, password);
       navigate('/dashboard');
     } catch (err) {
+      // Supabase error messages will be caught and displayed here
       setError(err.message);
       setBusy(false);
     }

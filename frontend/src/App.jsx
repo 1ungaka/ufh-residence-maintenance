@@ -27,7 +27,11 @@ function RequireAuth({ children }) {
 
 function RequireRole({ role, children }) {
   const { user } = useAuth();
-  if (user.role !== role) return <Navigate to="/dashboard" replace />;
+  
+  // Supabase stores custom registration data inside user_metadata
+  const userRole = user?.user_metadata?.role;
+  
+  if (userRole !== role) return <Navigate to="/dashboard" replace />;
   return children;
 }
 

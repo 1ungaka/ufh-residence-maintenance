@@ -5,33 +5,83 @@
  */
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { api } from '../api.js';
+import { supabase } from '../supabaseClient.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { Alert, Empty, SkeletonTable } from '../components/Ui.jsx';
 import RequestTable from '../components/RequestTable.jsx';
 
 export default function RequestList({ onlyMine = false }) {
   const { user } = useAuth();
-  const isMaintenance = user.role === 'maintenance';
+  
+  // Check against the user_metadata object where Supabase stores the custom fields
+  const isMaintenance = ['maintenance', 'tradesperson', 'facilities_admin'].includes(user?.user_metadata?.role);
 
   const [requests, setRequests] = useState(null);
   const [reference, setReference] = useState({ categories: [], statuses: [], urgencies: [] });
   const [filters, setFilters] = useState({ status: '', urgency: '', category_id: '' });
   const [error, setError] = useState('');
 
+  // 1. Fetch Reference Data for Dropdowns
   useEffect(() => {
-    api.reference().then(setReference).catch(() => {});
+    const fetchReferences = async () => {
+      try {
+        // Fetch dynamic categories from the database
+        const { data: categories } = await supabase.from('categories').select('*');
+        
+        // Status and Urgency are fixed ENUMs/Text in the DB schema, so we provide them here
+        setReference({
+          categories: categories || [],
+          statuses: ['logged', 'assigned', 'in_progress', 'resolved'], 
+          urgencies: ['High', 'Medium', 'Low']
+        });
+      } catch (err) {
+        console.error("Failed to load reference data", err);
+      }
+    };
+    fetchReferences();
   }, []);
 
+  // 2. Fetch and Filter Requests
   useEffect(() => {
-    setRequests(null);
-    const params = { ...filters };
-    if (isMaintenance) params.scope = onlyMine ? 'mine' : 'open';
-    api
-      .listRequests(params)
-      .then((data) => setRequests(data.requests))
-      .catch((err) => setError(err.message));
-  }, [filters, isMaintenance, onlyMine]);
+    const fetchRequests = async () => {
+      setRequests(null);
+      setError('');
+
+      // Initialize the query builder
+      let query = supabase
+        .from('maintenance_tickets')
+        .select(`*, reporter:profiles!reported_by(full_name, student_number)`)
+        .order('created_at', { ascending: false });
+
+      // Apply dropdown filters if they are selected
+      if (filters.category_id) {
+        query = query.eq('category_id', filters.category_id);
+      }
+      if (filters.status) {
+        query = query.eq('status', filters.status);
+      }
+      if (filters.urgency) {
+        query = query.eq('urgency', filters.urgency);
+      }
+
+      // Apply scope logic for maintenance staff
+      if (isMaintenance && onlyMine) {
+        query = query.eq('assigned_to', user.id);
+      }
+
+      // Execute the query
+      const { data, error: fetchError } = await query;
+
+      if (fetchError) {
+        setError(fetchError.message);
+        setRequests([]);
+      } else {
+        setRequests(data);
+      }
+    };
+
+    fetchRequests();
+  }, [filters, isMaintenance, onlyMine, user?.id]);
 
   const update = (field) => (event) => setFilters({ ...filters, [field]: event.target.value });
   const clear = () => setFilters({ status: '', urgency: '', category_id: '' });
@@ -70,7 +120,10 @@ export default function RequestList({ onlyMine = false }) {
             <select id="f-status" value={filters.status} onChange={update('status')}>
               <option value="">All statuses</option>
               {reference.statuses.map((status) => (
-                <option key={status}>{status}</option>
+                <option key={status} value={status}>
+                  {/* Format the enum value for the UI (e.g., 'in_progress' -> 'In Progress') */}
+                  {status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                </option>
               ))}
             </select>
           </div>
@@ -80,7 +133,7 @@ export default function RequestList({ onlyMine = false }) {
             <select id="f-urgency" value={filters.urgency} onChange={update('urgency')}>
               <option value="">All urgencies</option>
               {reference.urgencies.map((urgency) => (
-                <option key={urgency}>{urgency}</option>
+                <option key={urgency} value={urgency}>{urgency}</option>
               ))}
             </select>
           </div>
@@ -103,7 +156,7 @@ export default function RequestList({ onlyMine = false }) {
         ) : (
           <RequestTable
             requests={requests}
-            role={user.role}
+            role={user?.user_metadata?.role || 'student'}
             showScore={isMaintenance && !filters.status}
             empty={
               isMaintenance ? (

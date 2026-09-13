@@ -1,7 +1,7 @@
 /** The form a student uses to log a maintenance problem. */
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api } from '../api.js';
+import { supabase } from '../supabaseClient.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { Alert } from '../components/Ui.jsx';
 import { RESIDENCES } from '../utils/residences.js';
@@ -13,23 +13,31 @@ export default function SubmitRequest() {
   const [categories, setCategories] = useState([]);
   const [form, setForm] = useState({
     category_id: '',
-    residence: user.residence || RESIDENCES[0],
-    room: user.room || '',
+    // Pull default values from the Supabase user metadata we set during registration
+    residence: user?.user_metadata?.residence_building || RESIDENCES[0],
+    room: user?.user_metadata?.room_number || '',
     urgency: 'Medium',
     description: ''
   });
+  
   const [photo, setPhoto] = useState(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
+  // Fetch categories from a Supabase table (assuming you migrated your old API references to a table)
   useEffect(() => {
-    api
-      .reference()
-      .then((data) => {
-        setCategories(data.categories);
-        setForm((current) => ({ ...current, category_id: String(data.categories[0]?.id || '') }));
-      })
-      .catch((err) => setError(err.message));
+    const fetchCategories = async () => {
+      const { data, error } = await supabase.from('categories').select('*');
+      if (error) {
+        setError(error.message);
+      } else if (data) {
+        setCategories(data);
+        if (data.length > 0) {
+          setForm((current) => ({ ...current, category_id: String(data[0].id) }));
+        }
+      }
+    };
+    fetchCategories();
   }, []);
 
   const update = (field) => (event) => setForm({ ...form, [field]: event.target.value });
@@ -39,15 +47,54 @@ export default function SubmitRequest() {
     setError('');
     setBusy(true);
 
-    const payload = new FormData();
-    Object.entries(form).forEach(([key, value]) => payload.append(key, value));
-    if (photo) payload.append('photo', photo);
-
     try {
-      const data = await api.createRequest(payload);
-      navigate(`/requests/${data.request.id}`, {
+      let photoUrl = null;
+
+      // 1. If a photo was selected, upload it to Supabase Storage first
+      if (photo) {
+        const fileExt = photo.name.split('.').pop();
+        // Generate a unique filename to prevent overwriting
+        const fileName = `${user.id}-${Math.random()}.${fileExt}`;
+        const filePath = `fault-photos/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('maintenance-files')
+          .upload(filePath, photo);
+
+        if (uploadError) throw uploadError;
+
+        // Retrieve the public URL for the newly uploaded image
+        const { data: publicUrlData } = supabase.storage
+          .from('maintenance-files')
+          .getPublicUrl(filePath);
+
+        photoUrl = publicUrlData.publicUrl;
+      }
+
+      // 2. Insert the new ticket into the database
+      const { data, error: insertError } = await supabase
+        .from('maintenance_tickets')
+        .insert([
+          {
+            reported_by: user.id,
+            category_id: form.category_id,
+            residence_building: form.residence,
+            room_number: form.room,
+            urgency: form.urgency,
+            description: form.description,
+            photo_url: photoUrl
+          }
+        ])
+        .select() // Tells Supabase to return the newly created row
+        .single();
+
+      if (insertError) throw insertError;
+
+      // 3. Redirect to the detail page using the returned ticket ID
+      navigate(`/requests/${data.id}`, {
         state: { flash: 'Fault logged. You can follow its progress here.' }
       });
+      
     } catch (err) {
       setError(err.message);
       setBusy(false);
@@ -63,7 +110,7 @@ export default function SubmitRequest() {
 
       <div className="card">
         <form onSubmit={handleSubmit}>
-          <Alert type="error">{error}</Alert>
+          {error && <Alert type="error">{error}</Alert>}
 
           <div className="field">
             <label htmlFor="category">What kind of fault is it?</label>
