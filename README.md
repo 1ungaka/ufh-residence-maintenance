@@ -66,7 +66,14 @@ ufh-residence-maintenance/
 ```
 
 ## Running the Project
+### Prerequisites
 
+Ensure you have the following installed on your machine before setting up the project:
+
+* **[Node.js](https://nodejs.org/)** (v18.x or higher recommended - LTS version)
+* **npm** (bundled automatically with Node.js)
+* **[Git](https://git-scm.com/)**
+* **Database Engine** *(e.g., PostgreSQL / MySQL / MongoDB - update to match your project's DB)*
 ### Backend
 
 ```bash
