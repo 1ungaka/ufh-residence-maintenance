@@ -4,7 +4,7 @@
 
 The portal is a client-server application. The **client** is the React app running in the
 student's or worker's browser; the **server** is the Node.js/Express process holding the
-database. They are separate programs that only ever communicate over HTTP.
+database. They are different programs that only ever communicate over HTTP.
 
 ```
   Student or worker device
