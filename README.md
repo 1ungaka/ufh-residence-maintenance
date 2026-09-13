@@ -72,8 +72,7 @@ Ensure you have the following installed on your machine before setting up the pr
 
 * **[Node.js](https://nodejs.org/)** (v18.x or higher recommended - LTS version)
 * **npm** (bundled automatically with Node.js)
-* **[Git](https://git-scm.com/)**
-* **Database Engine** *(e.g., PostgreSQL / MySQL / MongoDB - update to match your project's DB)*
+* **[Supabase Account](https://supabase.com/)** (You will need access to your team's Supabase project credentials)
 ### Backend
 
 ```bash
