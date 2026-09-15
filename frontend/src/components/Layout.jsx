@@ -18,7 +18,8 @@ const MAINTENANCE_LINKS = [
 ];
 
 function initials(name) {
-  return name
+  const safeName = name || 'Student';
+  return safeName
     .split(' ')
     .filter(Boolean)
     .slice(0, 2)
@@ -30,7 +31,16 @@ export default function Layout({ children }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const links = user.role === 'student' ? STUDENT_LINKS : MAINTENANCE_LINKS;
+
+  // Safely extract Supabase metadata
+  const meta = user?.user_metadata || {};
+  const role = meta.role || 'student';
+  const fullName = meta.full_name || 'Student';
+  const residence = meta.residence_building || 'Residence';
+  const room = meta.room_number || '';
+  const trade = meta.trade || 'Facilities';
+
+  const links = role === 'student' ? STUDENT_LINKS : MAINTENANCE_LINKS;
 
   const handleLogout = () => {
     logout();
@@ -50,10 +60,10 @@ export default function Layout({ children }) {
 
         <div className="user-chip">
           <div className="who">
-            <strong>{user.name}</strong>
-            <span>{user.role === 'student' ? `${user.residence} - ${user.room}` : user.trade}</span>
+            <strong>{fullName}</strong>
+            <span>{role === 'student' ? `${residence} - ${room}` : trade}</span>
           </div>
-          <div className="avatar" aria-hidden="true">{initials(user.name)}</div>
+          <div className="avatar" aria-hidden="true">{initials(fullName)}</div>
           <button type="button" className="btn-secondary btn-small" onClick={handleLogout}>
             Sign out
           </button>
@@ -63,7 +73,7 @@ export default function Layout({ children }) {
       <div className="shell">
         <aside className="sidebar">
           <nav aria-label="Main">
-            <p className="nav-label">{user.role === 'student' ? 'Residence' : 'Facilities'}</p>
+            <p className="nav-label">{role === 'student' ? 'Residence' : 'Facilities'}</p>
             {links.map(({ to, label, icon: Icon }) => (
               <NavLink
                 key={to}
