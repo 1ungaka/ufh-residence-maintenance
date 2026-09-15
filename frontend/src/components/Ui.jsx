@@ -2,14 +2,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { formatDateTime } from '../utils/format.js';
 
-/** University crest, served from public/images/ufh-logo.png */
+/** University crest, served from public/images/UFH-Logos.png */
 export function Emblem({ size = 36 }) {
   return (
     <img
       className="emblem"
-      src="/images/ufh-logo.png"
-      width={size}
-      height={size}
+      src="/images/UFH-Logos.png"
+      width={134}
+      height={110}
       alt="University of Fort Hare"
       style={{ objectFit: 'contain' }}
     />

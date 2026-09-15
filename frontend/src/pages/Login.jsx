@@ -64,15 +64,23 @@ const residenceImages = [
 
   return (
     <div className="auth">
-      <section className="auth-hero">
+<section className="auth-hero" style={{ position: 'relative' }}>
         
-        {/* 2. Replaced the static image with the dynamic grid */}
+        {/* 1. The Dynamic Grid with a Dark Overlay added */}
         <div className="bg" style={{ position: 'absolute', inset: 0, overflow: 'hidden', zIndex: 0 }}>
           <GridMotion items={fullImageArray} gradientColor="#002147" />
+          
+          {/* This is the magic overlay that darkens the photos just enough */}
+          <div style={{ 
+            position: 'absolute', 
+            inset: 0, 
+            backgroundColor: 'rgba(0, 0, 0, 0.65)', /* 65% black */
+            zIndex: 1 
+          }} />
         </div>
 
-        {/* Added zIndex: 1 to keep text floating above the animation */}
-        <div className="auth-hero-brand" style={{ position: 'relative', zIndex: 1 }}>
+        {/* 2. Text with zIndex: 2 (to sit above the overlay) and textShadow added */}
+        <div className="auth-hero-brand" style={{ position: 'relative', zIndex: 2, textShadow: '0 2px 5px rgba(0,0,0,0.8)' }}>
           <Emblem size={40} />
           <div>
             <div className="line1">University of Fort Hare</div>
@@ -80,7 +88,7 @@ const residenceImages = [
           </div>
         </div>
 
-        <div className="auth-hero-body" style={{ position: 'relative', zIndex: 1 }}>
+        <div className="auth-hero-body" style={{ position: 'relative', zIndex: 2, textShadow: '0 2px 5px rgba(0,0,0,0.8)' }}>
           <h1>Report it once. Watch it get fixed.</h1>
           <p>
             Broken lights, blocked drains, faulty locks and Wi-Fi problems go straight to the
@@ -89,7 +97,18 @@ const residenceImages = [
 
           <div className="hero-steps">
             {STEPS.map((step, index) => (
-              <div className="hero-step" key={step.n} style={{ animationDelay: `${180 + index * 110}ms` }}>
+              <div 
+                className="hero-step" 
+                key={step.n} 
+                style={{ 
+                  animationDelay: `${180 + index * 110}ms`,
+                  /* Optional: Add a slight glass effect to the step boxes for even more readability */
+                  backgroundColor: 'rgba(0, 0, 0, 0.3)',
+                  padding: '10px 15px',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(255, 255, 255, 0.1)'
+                }}
+              >
                 <div className="n">{step.n}</div>
                 <div className="t">{step.t}</div>
               </div>
@@ -97,7 +116,7 @@ const residenceImages = [
           </div>
         </div>
 
-        <div className="auth-hero-foot" style={{ position: 'relative', zIndex: 1 }}>
+        <div className="auth-hero-foot" style={{ position: 'relative', zIndex: 2, textShadow: '0 2px 5px rgba(0,0,0,0.8)' }}>
           Residence Life &amp; Facilities Management
         </div>
       </section>
