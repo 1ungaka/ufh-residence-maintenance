@@ -4,6 +4,8 @@ React + Vite web app for the University of Fort Hare Residence Maintenance Porta
 Students log faults in their residence; maintenance tradespeople pick up the jobs
 and post progress updates the student can follow.
 
+**Live site: <https://ufh-residence-maintenance.vercel.app>**
+
 The app talks directly to **Supabase** (sign-in, database and photo storage).
 It does **not** need the `backend/` folder to be running.
 
