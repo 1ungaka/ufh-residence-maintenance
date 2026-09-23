@@ -1,6 +1,6 @@
 /** Date/label helpers shared by several screens. */
 
-/** SQLite stores "YYYY-MM-DD HH:MM:SS" in UTC. */
+/** Accepts ISO timestamps from Supabase and "YYYY-MM-DD HH:MM:SS" (treated as UTC). */
 export function parseTimestamp(value) {
   if (!value) return null;
   const iso = value.includes('T') ? value : value.replace(' ', 'T') + 'Z';
@@ -41,7 +41,13 @@ export function timeAgo(value) {
 
 /** Hours as a readable duration, used for the average resolution time. */
 export function formatHours(hours) {
+<<<<<<< HEAD
   if (!hours) return 'no completed requests yet';
   if (hours < 24) return `${Math.max(1, Math.round(hours))} hours`;
+=======
+  if (hours === null || hours === undefined) return 'no completed requests yet';
+  if (hours < 1) return 'under an hour';
+  if (hours < 24) return `${Math.round(hours)} hour${Math.round(hours) === 1 ? '' : 's'}`;
+>>>>>>> e1ffca59a6f9db1e59e2fd35f5a3ed2d7d7cf2fd
   return `${(hours / 24).toFixed(1)} days`;
 }

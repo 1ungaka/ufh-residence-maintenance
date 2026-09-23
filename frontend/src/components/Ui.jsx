@@ -33,7 +33,11 @@ const STATUS_LABEL = {
   closed: 'Closed'
 };
 
+<<<<<<< HEAD
 export function statusLabel(status) {
+=======
+function statusLabel(status) {
+>>>>>>> e1ffca59a6f9db1e59e2fd35f5a3ed2d7d7cf2fd
   return STATUS_LABEL[status] || status;
 }
 
@@ -141,12 +145,26 @@ export function SkeletonTable({ rows = 4 }) {
   );
 }
 
+/** Full-screen wait state: crest with a spinning gold ring, used while the session is checked. */
 export function Loading({ label = 'Loading' }) {
-  return <p className="hint">{label}...</p>;
+  return (
+    <div className="loading-screen" role="status" aria-live="polite">
+      <div className="loading-mark">
+        <span className="loading-ring" aria-hidden="true" />
+        <Emblem size={44} />
+      </div>
+      <p>{label}...</p>
+    </div>
+  );
 }
 
+<<<<<<< HEAD
 /** Update history on the request page; entries fade in one after another. */
 /**
+=======
+/**
+ * Update history on the request page; entries fade in one after another.
+>>>>>>> e1ffca59a6f9db1e59e2fd35f5a3ed2d7d7cf2fd
  * Each update: { id, created_at, status (or null for a note), headline, text,
  * author_name, author_is_student }.
  */

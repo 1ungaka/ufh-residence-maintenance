@@ -94,7 +94,7 @@ export default function Dashboard() {
 
           // Calculate average resolution time for completed jobs
           const resolved = tickets.filter((t) => t.status === 'resolved');
-          let avgHours = 0;
+          let avgHours = null; // null = nothing completed yet; 0 is a real (very fast) average
           if (resolved.length > 0) {
             const totalHours = resolved.reduce((acc, t) => {
               const start = new Date(t.created_at);

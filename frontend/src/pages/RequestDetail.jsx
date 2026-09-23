@@ -9,6 +9,10 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { Alert, SkeletonTable, StatusBadge, Timeline, Toast, UrgencyLabel } from '../components/Ui.jsx';
 import { formatDateTime, timeAgo } from '../utils/format.js';
 import { isStaff } from '../utils/roles.js';
+<<<<<<< HEAD
+=======
+import { shortRef } from '../components/RequestTable.jsx';
+>>>>>>> e1ffca59a6f9db1e59e2fd35f5a3ed2d7d7cf2fd
 import { defaultStatusText, parseUpdate, statusMessage, STATUS_HEADLINE } from '../utils/updates.js';
 
 /** Mapped to your Supabase database enum states */
@@ -190,7 +194,7 @@ export default function RequestDetail() {
       <div className="detail-banner">
         <div>
           <h1>
-            #{request.id.slice(0, 8)} &middot; {request.category}
+            {shortRef(request.id)} &middot; {request.category}
           </h1>
           <div className="meta">
             {request.residence}, room {request.room} &middot; logged {timeAgo(request.created_at)}
@@ -210,7 +214,7 @@ export default function RequestDetail() {
             <h2>Fault details</h2>
             <dl className="definitions">
               <dt>Reference</dt>
-              <dd>#{request.id.slice(0, 8)}</dd>
+              <dd>{shortRef(request.id)}</dd>
 
               <dt>Student</dt>
               <dd>

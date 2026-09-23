@@ -22,6 +22,10 @@ import Contact from './pages/Contact.jsx';
 import Terms from './pages/Terms.jsx';
 import Privacy from './pages/Privacy.jsx';
 import PublicLayout from './components/PublicLayout.jsx';
+<<<<<<< HEAD
+=======
+import PageTitle from './components/PageTitle.jsx';
+>>>>>>> e1ffca59a6f9db1e59e2fd35f5a3ed2d7d7cf2fd
 import ForgotPassword from './pages/ForgotPassword.jsx';
 import ResetPassword from './pages/ResetPassword.jsx';
 
@@ -146,6 +150,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <PageTitle />
         <AppRoutes />
       </AuthProvider>
     </BrowserRouter>
