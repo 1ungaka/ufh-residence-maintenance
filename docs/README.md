@@ -14,6 +14,14 @@ The written documentation lives in the project root:
 | `../USER_GUIDE.md` | How students and maintenance staff use the portal |
 | `../API.md` | Full REST API reference |
 
+## Final system (Supabase)
+
+| File | What it covers |
+|---|---|
+| `supabase/README.md` | Live data model, one-off Supabase setup, security controls and known gaps |
+| `supabase/storage-policies.sql` | Storage policies that allow fault photo uploads |
+| `supabase/reset-password-email.html` | UFH-branded password reset email template |
+
 ## Diagrams
 
 All diagrams are written in Mermaid inside markdown files, so they render directly on GitHub, in
