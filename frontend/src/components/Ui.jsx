@@ -141,8 +141,17 @@ export function SkeletonTable({ rows = 4 }) {
   );
 }
 
+/** Full-screen wait state: crest with a spinning gold ring, used while the session is checked. */
 export function Loading({ label = 'Loading' }) {
-  return <p className="hint">{label}...</p>;
+  return (
+    <div className="loading-screen" role="status" aria-live="polite">
+      <div className="loading-mark">
+        <span className="loading-ring" aria-hidden="true" />
+        <Emblem size={44} />
+      </div>
+      <p>{label}...</p>
+    </div>
+  );
 }
 
 /**
