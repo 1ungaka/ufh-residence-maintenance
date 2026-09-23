@@ -31,6 +31,18 @@ Other scripts:
 | `npm run build`   | Production build into `dist/`                 |
 | `npm run preview` | Serve the production build locally            |
 
+## Deploying (Vercel)
+
+1. On [vercel.com/new](https://vercel.com/new), sign in with GitHub and import
+   `ufh-residence-maintenance`.
+2. Set **Root Directory** to `frontend`. Everything else is picked up from
+   `vercel.json` (Vite build, and a rewrite so links like `/reset-password`
+   open the app instead of a 404).
+3. Deploy. Every push to `main` redeploys automatically.
+4. In Supabase → Authentication → URL Configuration, set **Site URL** to the
+   Vercel address and add `https://<your-app>.vercel.app/reset-password` under
+   **Redirect URLs**, so reset links come back to the live site.
+
 ## Signing in
 
 | Role                      | Email format                        | Account                              |
