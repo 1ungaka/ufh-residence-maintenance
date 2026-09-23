@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { Alert, Emblem, Icons } from '../components/Ui.jsx';
@@ -38,9 +38,53 @@ const RESIDENCE_IMAGES = [
 // GridMotion has 28 slots; repeat the photos until they are all filled.
 const GRID_IMAGES = Array(28).fill(RESIDENCE_IMAGES).flat().slice(0, 28);
 
+/**
+ * Gentle 3D tilt: the card leans a few degrees toward the mouse and the
+ * headline drifts the other way. Writes CSS variables straight to the page
+ * element (no re-renders). Off for touch screens and reduced-motion users.
+ */
+function useTilt() {
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!el || reduced) return undefined;
+
+    let frame = 0;
+    const move = (event) => {
+      if (event.pointerType !== 'mouse') return;
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const x = event.clientX / window.innerWidth - 0.5; // -0.5 .. 0.5
+        const y = event.clientY / window.innerHeight - 0.5;
+        el.style.setProperty('--tilt-x', `${(-y * 6).toFixed(2)}deg`);
+        el.style.setProperty('--tilt-y', `${(x * 8).toFixed(2)}deg`);
+        el.style.setProperty('--drift-x', `${(-x * 14).toFixed(1)}px`);
+        el.style.setProperty('--drift-y', `${(-y * 10).toFixed(1)}px`);
+      });
+    };
+    const reset = () => {
+      cancelAnimationFrame(frame);
+      ['--tilt-x', '--tilt-y', '--drift-x', '--drift-y'].forEach((v) => el.style.removeProperty(v));
+    };
+
+    el.addEventListener('pointermove', move);
+    el.addEventListener('pointerleave', reset);
+    return () => {
+      cancelAnimationFrame(frame);
+      el.removeEventListener('pointermove', move);
+      el.removeEventListener('pointerleave', reset);
+    };
+  }, []);
+
+  return ref;
+}
+
 export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const landingRef = useTilt();
   const [role, setRole] = useState('student');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -79,7 +123,7 @@ export default function Login() {
   };
 
   return (
-    <div className="landing">
+    <div className="landing" ref={landingRef}>
       {/* Full-page photo wall under a navy wash; everything else floats on top. */}
       <div className="landing-bg" aria-hidden="true">
         <GridMotion items={GRID_IMAGES} gradientColor="#002147" />

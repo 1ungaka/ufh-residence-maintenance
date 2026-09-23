@@ -855,9 +855,14 @@ textarea.short { min-height: 72px; }
   position: fixed;
   inset: 0;
   z-index: 1;
+  /* Dark enough at the top for the headline, lighter through the middle so
+     the campus photos show, darker again at the foot. */
   background:
-    radial-gradient(ellipse 70% 55% at 50% 58%, rgba(8, 33, 61, 0.55), transparent 70%),
-    linear-gradient(180deg, rgba(8, 33, 61, 0.94) 0%, rgba(8, 33, 61, 0.78) 40%, rgba(8, 33, 61, 0.9) 100%);
+    linear-gradient(180deg,
+      rgba(8, 33, 61, 0.86) 0%,
+      rgba(8, 33, 61, 0.55) 34%,
+      rgba(8, 33, 61, 0.42) 60%,
+      rgba(8, 33, 61, 0.8) 100%);
 }
 
 .landing-top, .landing-main, .landing-foot { position: relative; z-index: 2; }
@@ -891,11 +896,29 @@ textarea.short { min-height: 72px; }
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 36px 16px 40px;
-  gap: 26px;
+  padding: 40px 16px 48px;
+  gap: 32px;
+  perspective: 1400px; /* depth for the card's tilt */
 }
 
-.landing-intro { text-align: center; max-width: 720px; animation: rise 0.55s ease both; }
+/* Entrance uses the separate `translate`/`rotate` properties so it never
+   fights the mouse tilt, which lives on `transform`. */
+@keyframes lift-in {
+  from { opacity: 0; translate: 0 26px; }
+  to { opacity: 1; translate: 0 0; }
+}
+@keyframes swing-in {
+  from { opacity: 0; translate: 0 40px; rotate: x 14deg; }
+  to { opacity: 1; translate: 0 0; rotate: x 0deg; }
+}
+
+.landing-intro {
+  text-align: center;
+  max-width: 820px;
+  animation: lift-in 0.6s ease both;
+  transform: translate3d(var(--drift-x, 0), var(--drift-y, 0), 0);
+  transition: transform 0.6s cubic-bezier(0.22, 0.68, 0.35, 1);
+}
 
 .landing-kicker {
   display: inline-block;
@@ -913,10 +936,10 @@ textarea.short { min-height: 72px; }
 
 .landing-intro h1 {
   color: #fff;
-  font-size: clamp(1.8rem, 4.2vw, 2.9rem);
-  line-height: 1.1;
-  margin-bottom: 18px;
-  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.35);
+  font-size: clamp(2.1rem, 5vw, 3.7rem);
+  line-height: 1.06;
+  margin-bottom: 22px;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 .landing-intro h1 em { font-style: normal; color: var(--gold-500); }
 
@@ -956,16 +979,39 @@ textarea.short { min-height: 72px; }
 
 .landing-card {
   width: 100%;
-  max-width: 468px;
-  padding: 28px 30px 24px;
-  border-radius: 16px;
-  background: var(--surface);
+  max-width: 560px;
+  padding: 38px 44px 34px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.97);
   color: var(--ink);
-  border-top: 4px solid var(--gold-500);
-  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.08);
-  animation: rise 0.6s 0.1s cubic-bezier(0.22, 0.68, 0.35, 1) both;
+  border-top: 5px solid var(--gold-500);
+  box-shadow:
+    0 40px 80px rgba(0, 0, 0, 0.4),
+    0 12px 24px rgba(8, 33, 61, 0.25),
+    0 0 0 1px rgba(255, 255, 255, 0.1);
+  transform-style: preserve-3d;
+  transform: rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg));
+  transition: transform 0.5s cubic-bezier(0.22, 0.68, 0.35, 1);
+  animation: swing-in 0.8s 0.12s cubic-bezier(0.2, 0.75, 0.3, 1) both;
 }
 .landing-card .auth-form { max-width: none; animation: none; }
+
+/* Larger type and controls inside the sign-in card */
+.landing-card .auth-form h2 { font-size: 2rem; margin-bottom: 6px; }
+.landing-card .auth-form .lede { font-size: 1.02rem; margin-bottom: 26px; }
+.landing-card .role-picker legend,
+.landing-card label { font-size: 0.95rem; }
+.landing-card .role-tile { padding: 16px 16px; gap: 7px; border-radius: 12px; }
+.landing-card .role-tile strong { font-size: 1rem; }
+.landing-card .role-tile span { font-size: 0.82rem; }
+.landing-card .role-option:hover .role-tile { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+.landing-card .role-tile { transition: border-color 0.16s ease, background 0.16s ease, box-shadow 0.2s ease, transform 0.2s ease; }
+.landing-card input { padding: 13px 15px; font-size: 1rem; border-radius: 8px; }
+.landing-card .password-input input { padding-right: 76px; }
+.landing-card .field { margin-bottom: 18px; }
+.landing-card .btn-pill { padding: 15px 24px; font-size: 1.02rem; }
+.landing-card .btn-pill:not(:disabled):hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(245, 183, 29, 0.35); }
+.landing-card .auth-switch { font-size: 0.95rem; }
 
 .landing-foot {
   display: flex;
@@ -1080,7 +1126,8 @@ textarea.short { min-height: 72px; }
   .landing-nav { gap: 12px; font-size: 0.82rem; white-space: nowrap; }
   .landing-main { padding: 24px 16px 28px; gap: 20px; }
   .landing-steps li { font-size: 0.8rem; }
-  .landing-card { padding: 22px 18px 18px; }
+  .landing-card { padding: 26px 20px 22px; border-radius: 16px; }
+  .landing-card .auth-form h2 { font-size: 1.6rem; }
   .role-options { grid-template-columns: 1fr; }
   .landing-foot { padding: 12px 16px 16px; }
 }
