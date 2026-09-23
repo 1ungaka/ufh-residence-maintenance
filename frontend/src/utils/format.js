@@ -1,6 +1,6 @@
 /** Date/label helpers shared by several screens. */
 
-/** SQLite stores "YYYY-MM-DD HH:MM:SS" in UTC. */
+/** Accepts ISO timestamps from Supabase and "YYYY-MM-DD HH:MM:SS" (treated as UTC). */
 export function parseTimestamp(value) {
   if (!value) return null;
   const iso = value.includes('T') ? value : value.replace(' ', 'T') + 'Z';

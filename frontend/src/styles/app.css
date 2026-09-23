@@ -292,21 +292,6 @@ a:hover { color: var(--blue-500); }
 .info-section li::marker { color: var(--navy-600); }
 .legal .info-section h2 { font-size: 1.02rem; }
 
-.info-steps { list-style: none; padding: 0 !important; display: grid; gap: 14px; }
-.info-steps li { display: flex; gap: 14px; margin: 0; }
-.info-steps .n {
-  flex: none;
-  width: 34px; height: 34px;
-  display: grid; place-items: center;
-  border-radius: 50%;
-  background: var(--navy-900);
-  color: var(--gold-500);
-  font-family: var(--font-display);
-  font-size: 0.8rem;
-  font-weight: 600;
-}
-.info-steps strong { color: var(--navy-900); }
-.info-steps p { margin: 2px 0 0; color: var(--ink-soft); }
 
 .contact-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
 .contact-card { padding: 18px 20px; display: flex; flex-direction: column; }
@@ -339,18 +324,11 @@ a:hover { color: var(--blue-500); }
 }
 
 /* small arrow on links that leave the portal */
-.site-footer-col a[target="_blank"]::after,
-.auth-links a[target="_blank"]::after { content: " \2197"; font-size: 0.85em; }
-
-.auth-links { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 18px; font-size: 0.78rem; }
-.auth-links a { color: var(--muted); }
-.auth-links a:hover { color: var(--navy-600); }
+.site-footer-col a[target="_blank"]::after { content: " \2197"; font-size: 0.85em; }
 
 .page-head { margin-bottom: 20px; }
 .page-head h1 { margin-bottom: 3px; }
 .page-head p { color: var(--muted); margin: 0; }
-
-.page-head-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
 
 /* ---------------------------------------------------------------- cards -- */
 
@@ -637,8 +615,6 @@ button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
   padding: 12px;
 }
 .code-input::placeholder { color: #c9d2de; }
-.auth-success { padding: 14px 16px; border-radius: var(--r-sm); background: var(--green-100); border-left: 4px solid var(--green-600); color: #10603a; }
-.auth-success p:last-child { margin-bottom: 0; }
 
 /* ------------------------------------------------------- welcome banner -- */
 
@@ -983,7 +959,6 @@ textarea.short { min-height: 72px; }
 .landing-foot a { color: #c9d9ea; }
 .landing-foot a:hover { color: var(--gold-500); }
 
-.auth-panel { display: flex; align-items: center; justify-content: center; padding: 44px 28px; background: var(--surface); }
 
 .auth-form { width: 100%; max-width: 396px; animation: rise 0.5s ease both; }
 .auth-form h2 { font-size: 1.5rem; margin-bottom: 4px; }
@@ -1071,7 +1046,6 @@ textarea.short { min-height: 72px; }
 
 @media (max-width: 980px) {
   .detail-grid { grid-template-columns: 1fr; }
-  .auth-panel { padding: 32px 22px 48px; }
   .form-row { grid-template-columns: 1fr; }
 }
 

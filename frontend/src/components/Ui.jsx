@@ -33,7 +33,7 @@ const STATUS_LABEL = {
   closed: 'Closed'
 };
 
-export function statusLabel(status) {
+function statusLabel(status) {
   return STATUS_LABEL[status] || status;
 }
 
@@ -145,8 +145,8 @@ export function Loading({ label = 'Loading' }) {
   return <p className="hint">{label}...</p>;
 }
 
-/** Update history on the request page; entries fade in one after another. */
 /**
+ * Update history on the request page; entries fade in one after another.
  * Each update: { id, created_at, status (or null for a note), headline, text,
  * author_name, author_is_student }.
  */
