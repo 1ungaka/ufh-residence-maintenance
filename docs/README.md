@@ -18,6 +18,7 @@ The written documentation lives in the project root:
 
 | File | What it covers |
 |---|---|
+| `UFH-Residence-Maintenance-Documentation.docx` / `.pdf` | **Software documentation for submission**: problem statement, solution, specifications, languages, functional and non-functional requirements, user modes, concept of operation, use case and activity diagrams, methodology, demo and testing, conclusion |
 | `supabase/README.md` | Live data model, one-off Supabase setup, security controls and known gaps |
 | `supabase/storage-policies.sql` | Storage policies that allow fault photo uploads |
 | `supabase/reset-password-email.html` | UFH-branded password reset email template |
