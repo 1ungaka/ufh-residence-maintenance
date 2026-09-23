@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { Alert } from '../components/Ui.jsx';
+import { roleForEmail } from '../utils/emails.js';
+import ResidenceField from '../components/ResidenceField.jsx';
 import ClickSpark from '../components/ui/ClickSpark';
 
 export default function Register() {
@@ -11,7 +13,7 @@ export default function Register() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
-  const [residenceBuilding, setResidenceBuilding] = useState('Alice Campus Res');
+  const [residenceBuilding, setResidenceBuilding] = useState('');
   const [roomNumber, setRoomNumber] = useState('');
 
   const [error, setError] = useState('');
@@ -22,8 +24,11 @@ export default function Register() {
     setError('');
     setBusy(true);
 
-    if (!email.endsWith('@ufh.ac.za')) {
-      setError('Registration is restricted to valid @ufh.ac.za email addresses.');
+    const emailRole = roleForEmail(email);
+    if (emailRole !== 'student') {
+      setError(emailRole === 'maintenance'
+        ? 'Staff accounts are issued by Facilities Management. Sign in with your staff email instead of registering.'
+        : 'Registration is restricted to student emails, for example 202412345@ufh.ac.za.');
       setBusy(false);
       return;
     }
@@ -35,7 +40,7 @@ export default function Register() {
       password: password,
       full_name: fullName,
       student_number: studentNumber,
-      residence_building: residenceBuilding,
+      residence_building: residenceBuilding.trim(),
       room_number: roomNumber,
       role: 'student'
     };
@@ -97,22 +102,20 @@ export default function Register() {
               <input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ccc' }} />
             </div>
 
-            <div className="field" style={{ marginBottom: '1rem' }}>
-              <label htmlFor="residenceBuilding" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Residence</label>
-              <select id="residenceBuilding" value={residenceBuilding} onChange={(e) => setResidenceBuilding(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ccc' }}>
-                <option value="Alice Campus Res">Alice Campus Res</option>
-                <option value="Bisho Campus Res">Bisho Campus Res</option>
-                <option value="East London Campus Res">East London Campus Res</option>
-              </select>
-            </div>
+            <ResidenceField id="residenceBuilding" value={residenceBuilding} onChange={setResidenceBuilding} />
 
             <div className="field" style={{ marginBottom: '1.5rem' }}>
               <label htmlFor="roomNumber" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Room Number</label>
               <input id="roomNumber" type="text" placeholder="e.g., A12" value={roomNumber} onChange={(e) => setRoomNumber(e.target.value)} required style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ccc' }} />
             </div>
 
+            <p className="auth-foot">
+              By creating an account you agree to our <Link to="/terms">Terms and conditions</Link> and
+              confirm you have read our <Link to="/privacy">Privacy statement</Link>.
+            </p>
+
             <div className="form-actions">
-              <button 
+              <button
                 type="submit" 
                 disabled={busy}
                 style={{ 

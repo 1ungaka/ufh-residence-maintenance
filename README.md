@@ -1,8 +1,13 @@
 # UFH Residence Maintenance Portal
+## Software Documentation 
 
 A web-based system that allows University of Fort Hare students to report maintenance problems in their residences and track the progress of their requests.
+Maintenance staff can manage, assign and resolve reported issues.
+The system covers two primary user roles:
+- **Students** — who submit and monitor maintenance requests.
+- **Maintenance Staff** — who receive, action, and resolve those requests.
+This documentation is intended for developers, maintainers, evaluators, and other stakeholders who need to understand the system's purpose, structure, and functionality.
 
-Maintenance staff can view reported problems, assign requests to themselves, update their progress and mark requests as completed.
 
 ## Main Features
 
@@ -43,7 +48,7 @@ Request completed
 
 - Frontend: React + Vite
 - Backend: Node.js + Express
-- Database: SQLite
+- Database: Superbase
 - Authentication: JWT
 - Password Security: bcrypt
 

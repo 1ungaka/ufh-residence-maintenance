@@ -9,12 +9,13 @@ import { supabase } from '../supabaseClient.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { Alert, Empty, SkeletonTable } from '../components/Ui.jsx';
 import RequestTable from '../components/RequestTable.jsx';
+import { isStaff, portalRole } from '../utils/roles.js';
 
 export default function RequestList({ onlyMine = false }) {
   const { user } = useAuth();
   
   // Check against the user_metadata object where Supabase stores the custom fields
-  const isMaintenance = ['maintenance', 'tradesperson', 'facilities_admin'].includes(user?.user_metadata?.role);
+  const isMaintenance = isStaff(user);
 
   const [requests, setRequests] = useState(null);
   const [reference, setReference] = useState({ categories: [], statuses: [], urgencies: [] });
@@ -64,8 +65,10 @@ export default function RequestList({ onlyMine = false }) {
         query = query.eq('urgency', filters.urgency);
       }
 
-      // Apply scope logic for maintenance staff
-      if (isMaintenance && onlyMine) {
+      // Students only ever see their own requests; staff can narrow to jobs assigned to them.
+      if (!isMaintenance) {
+        query = query.eq('reported_by', user.id);
+      } else if (onlyMine) {
         query = query.eq('assigned_to', user.id);
       }
 
@@ -156,7 +159,7 @@ export default function RequestList({ onlyMine = false }) {
         ) : (
           <RequestTable
             requests={requests}
-            role={user?.user_metadata?.role || 'student'}
+            role={portalRole(user)}
             showScore={isMaintenance && !filters.status}
             empty={
               isMaintenance ? (

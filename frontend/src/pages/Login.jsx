@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
-import { Alert, Emblem } from '../components/Ui.jsx';
-// Fixed the import path to go up one level
-import GridMotion from '../components/ui/GridMotion'; 
+import { Alert, Emblem, Icons } from '../components/Ui.jsx';
+import { INFO_LINKS, InfoLink } from '../components/Footer.jsx';
+import GridMotion from '../components/ui/GridMotion';
+import { EMAIL_PLACEHOLDER, emailError, normaliseEmail } from '../utils/emails.js';
 
 const STEPS = [
   { n: '01', t: 'Log the fault from your room' },
@@ -11,177 +12,221 @@ const STEPS = [
   { n: '03', t: 'Follow every update to completion' }
 ];
 
+// value matches user_metadata.role in Supabase
+const ROLES = [
+  { value: 'student', label: 'Student', hint: 'Log and track faults in your residence', icon: Icons.user },
+  { value: 'maintenance', label: 'Maintenance tradesperson', hint: 'Pick up and update jobs', icon: Icons.tools }
+];
+
+// Local UFH photos first, then campus and trade shots.
+const RESIDENCE_IMAGES = [
+  '/images/campus-team.jpg',
+  '/images/electrical-panel.jpg',
+  '/images/maintenance-collage.jpg',
+  '/images/electrical.jpg',
+  '/images/plumber.jpg',
+  'https://stagafrican.com/wp-content/uploads/2020/04/AliceCampus-Building2.jpg',
+  'https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1',
+  'https://insideeducation.co.za/wp-content/uploads/2020/11/FortHareResidence.jpg',
+  'https://images.unsplash.com/photo-1621905252507-b35492cc74b4',
+  'https://www.dailydispatch.co.za/resizer/v2/5VBKUM3J6FLUNGDFVZDE5YBVSY.jpg?auth=6b5f7b3cecaab2387cd1203a54b9bf09b0d9c18a8142225fc8c93967eb3b5dd3&width=800&height=533&smart=true',
+  'https://groundup.org.za/media/uploads/images/photographers/Johnnie%20Isaac/ashes_of_university_of_fort_hare_zJBo9vg.jpg',
+  'https://images.unsplash.com/photo-1517581177682-a085bb7ffb15',
+  'https://www.ufh.ac.za/wp-content/uploads/2024/11/UFH-DRI-Research-Week-2024-Day-1-69-e1732064287899-847x1024.webp'
+];
+
+// GridMotion has 28 slots; repeat the photos until they are all filled.
+const GRID_IMAGES = Array(28).fill(RESIDENCE_IMAGES).flat().slice(0, 28);
+
 export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const [role, setRole] = useState('student');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [badCredentials, setBadCredentials] = useState(false);
   const [busy, setBusy] = useState(false);
 
-  // 1. Generate the array of images to fill the grid
-  // 1. Update the array with your local images and the new campus shots
-const residenceImages = [
-    // Your local UFH images
-    '/images/campus-team.jpg',
-    '/images/electrical-panel.jpg',
-    '/images/maintenance-collage.jpg',
-    '/images/electrical.jpg',
-    '/images/plumber.jpg',
-    
-    // High-quality maintenance, trade, and campus placeholders
-    'https://stagafrican.com/wp-content/uploads/2020/04/AliceCampus-Building2.jpg', // Construction/Building
-    'https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1', // Maintenance tools
-    'https://insideeducation.co.za/wp-content/uploads/2020/11/FortHareResidence.jpg', // Campus building
-    'https://images.unsplash.com/photo-1621905252507-b35492cc74b4', // Electrical wiring
-    'https://www.dailydispatch.co.za/resizer/v2/5VBKUM3J6FLUNGDFVZDE5YBVSY.jpg?auth=6b5f7b3cecaab2387cd1203a54b9bf09b0d9c18a8142225fc8c93967eb3b5dd3&width=800&height=533&smart=true', // Construction site
-    'https://groundup.org.za/media/uploads/images/photographers/Johnnie%20Isaac/ashes_of_university_of_fort_hare_zJBo9vg.jpg', // Burnt Building
-    'https://images.unsplash.com/photo-1517581177682-a085bb7ffb15', // Brick building
-    'https://www.ufh.ac.za/wp-content/uploads/2024/11/UFH-DRI-Research-Week-2024-Day-1-69-e1732064287899-847x1024.webp'//buhlungu
-  ];
-
-  // This will perfectly loop those 10 images until all 28 grid slots are filled
-  const fullImageArray = Array(28).fill(residenceImages).flat().slice(0, 28);
   const handleSubmit = async (event) => {
     event.preventDefault();
     setError('');
-    setBusy(true);
+    setBadCredentials(false);
 
-    if (!email.endsWith('@ufh.ac.za')) {
-      setError('You must use a valid University of Fort Hare (@ufh.ac.za) email address.');
-      setBusy(false);
+    const cleanEmail = normaliseEmail(email);
+    const formatError = emailError(cleanEmail, role);
+    if (formatError) {
+      setError(formatError);
       return;
     }
 
+    setBusy(true);
     try {
-      await login(email, password);
+      await login(cleanEmail, password, role);
       navigate('/dashboard');
     } catch (err) {
-      setError(err.message);
+      if (/invalid login credentials/i.test(err.message)) {
+        setBadCredentials(true);
+        setError('That email and password do not match an account.');
+      } else if (/email not confirmed/i.test(err.message)) {
+        setError('Please confirm your email first. Check your inbox for the link we sent when you registered.');
+      } else {
+        setError(err.message);
+      }
       setBusy(false);
     }
   };
 
   return (
-    <div className="auth">
-<section className="auth-hero" style={{ position: 'relative' }}>
-        
-        {/* 1. The Dynamic Grid with a Dark Overlay added */}
-        <div className="bg" style={{ position: 'absolute', inset: 0, overflow: 'hidden', zIndex: 0 }}>
-          <GridMotion items={fullImageArray} gradientColor="#002147" />
-          
-          {/* This is the magic overlay that darkens the photos just enough */}
-          <div style={{ 
-            position: 'absolute', 
-            inset: 0, 
-            backgroundColor: 'rgba(0, 0, 0, 0.65)', /* 65% black */
-            zIndex: 1 
-          }} />
-        </div>
+    <div className="landing">
+      {/* Full-page photo wall under a navy wash; everything else floats on top. */}
+      <div className="landing-bg" aria-hidden="true">
+        <GridMotion items={GRID_IMAGES} gradientColor="#002147" />
+      </div>
+      <div className="landing-shade" aria-hidden="true" />
 
-        {/* 2. Text with zIndex: 2 (to sit above the overlay) and textShadow added */}
-        <div className="auth-hero-brand" style={{ position: 'relative', zIndex: 2, textShadow: '0 2px 5px rgba(0,0,0,0.8)' }}>
-          <Emblem size={40} />
+      <header className="landing-top">
+        <div className="landing-brand">
+          <Emblem size={56} />
           <div>
             <div className="line1">University of Fort Hare</div>
-            <div className="line2">Residence Maintenance</div>
+            <div className="line2">Residence Maintenance Portal</div>
           </div>
         </div>
+        <nav className="landing-nav" aria-label="Site">
+          {INFO_LINKS.slice(0, 2).map((link) => (
+            <InfoLink key={link.label} {...link} />
+          ))}
+        </nav>
+      </header>
 
-        <div className="auth-hero-body" style={{ position: 'relative', zIndex: 2, textShadow: '0 2px 5px rgba(0,0,0,0.8)' }}>
-          <h1>Report it once. Watch it get fixed.</h1>
-          <p>
-            Broken lights, blocked drains, faulty locks and Wi-Fi problems go straight to the
-            tradesperson who handles them, with a record you can check any time.
-          </p>
-
-          <div className="hero-steps">
+      <main className="landing-main">
+        <section className="landing-intro">
+          <span className="landing-kicker">Together in Excellence</span>
+          <h1>
+            Report it once. <em>Watch it get fixed.</em>
+          </h1>
+          <ol className="landing-steps">
             {STEPS.map((step, index) => (
-              <div 
-                className="hero-step" 
-                key={step.n} 
-                style={{ 
-                  animationDelay: `${180 + index * 110}ms`,
-                  /* Optional: Add a slight glass effect to the step boxes for even more readability */
-                  backgroundColor: 'rgba(0, 0, 0, 0.3)',
-                  padding: '10px 15px',
-                  borderRadius: '8px',
-                  border: '1px solid rgba(255, 255, 255, 0.1)'
-                }}
-              >
-                <div className="n">{step.n}</div>
-                <div className="t">{step.t}</div>
-              </div>
+              <li key={step.n} style={{ animationDelay: `${160 + index * 120}ms` }}>
+                <span className="n">{step.n}</span>
+                {step.t}
+              </li>
             ))}
-          </div>
-        </div>
+          </ol>
+        </section>
 
-        <div className="auth-hero-foot" style={{ position: 'relative', zIndex: 2, textShadow: '0 2px 5px rgba(0,0,0,0.8)' }}>
-          Residence Life &amp; Facilities Management
-        </div>
-      </section>
+        <section className="landing-card">
+          <form className="auth-form" onSubmit={handleSubmit} noValidate>
+            <h2>Sign in</h2>
+            <p className="lede">Use your university email address and password.</p>
 
-      <section className="auth-panel">
-        <form className="auth-form" onSubmit={handleSubmit}>
-          <h2>Sign in</h2>
-          <p className="lede">Use your university email address and password.</p>
+            <fieldset className="role-picker">
+              <legend>I am signing in as a</legend>
+              <div className="role-options">
+                {ROLES.map(({ value, label, hint, icon: Icon }) => (
+                  <label className="role-option" key={value}>
+                    <input
+                      type="radio"
+                      name="role"
+                      value={value}
+                      checked={role === value}
+                      onChange={() => {
+                        setRole(value);
+                        setError('');
+                        setBadCredentials(false);
+                      }}
+                    />
+                    <span className="role-tile">
+                      <Icon />
+                      <strong>{label}</strong>
+                      <span>{hint}</span>
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
 
-          <Alert type="error">{error}</Alert>
+            {error && (
+              <Alert type="error">
+                {error}
+                {badCredentials && (
+                  <>
+                    {' '}
+                    <Link to="/forgot-password">Reset your password</Link>
+                    {role === 'student' && <> or <Link to="/register">create an account</Link></>}.
+                  </>
+                )}
+              </Alert>
+            )}
 
-          <div className="field">
-            <label htmlFor="email">University email</label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              placeholder="202412345@ufh.ac.za"
-              autoComplete="username"
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
+            <div className="field">
+              <label htmlFor="email">{role === 'student' ? 'Student email' : 'Staff email'}</label>
+              <input
+                id="email"
+                type="email"
+                value={email}
+                placeholder={EMAIL_PLACEHOLDER[role]}
+                autoComplete="username"
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
 
-          <div className="field">
-            <label htmlFor="password">Password</label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              autoComplete="current-password"
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
+            <div className="field">
+              <div className="label-row">
+                <label htmlFor="password">Password</label>
+                <Link to="/forgot-password" className="label-link">Forgot password?</Link>
+              </div>
+              <div className="password-input">
+                <input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  autoComplete="current-password"
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+                <button
+                  type="button"
+                  className="password-toggle"
+                  onClick={() => setShowPassword((shown) => !shown)}
+                  aria-pressed={showPassword}
+                >
+                  {showPassword ? 'Hide' : 'Show'}
+                </button>
+              </div>
+            </div>
 
-          <div className="form-actions">
-            <button 
-              type="submit" 
-              disabled={busy}
-              style={{ 
-                backgroundColor: '#FFC700', 
-                color: '#000000',
-                fontWeight: '600',
-                border: 'none',
-                borderRadius: '20px',
-                padding: '12px 24px',
-                cursor: 'pointer',
-                width: '100%' // Optional: makes the button stretch nicely across the form
-              }}
-            >
-              {busy ? 'Signing in...' : 'Sign in'}
-            </button>
-          </div>
+            <div className="form-actions">
+              <button type="submit" className="btn-gold btn-pill btn-block" disabled={busy}>
+                {busy ? 'Signing in...' : 'Sign in'}
+              </button>
+            </div>
 
-          <div className="auth-switch">
-            First time here? <Link to="/register">Create your student account</Link>
-          </div>
+            {role === 'student' ? (
+              <div className="auth-switch">
+                First time here? <Link to="/register">Create your student account</Link>
+              </div>
+            ) : (
+              <div className="auth-switch">
+                Maintenance staff accounts are issued by Facilities Management. If you cannot sign
+                in, contact your supervisor or the Facilities office.
+              </div>
+            )}
+          </form>
+        </section>
+      </main>
 
-          <p className="auth-foot">
-            Maintenance staff accounts are issued by Facilities Management. If you cannot sign in,
-            contact the residence office.
-          </p>
-        </form>
-      </section>
+      <footer className="landing-foot">
+        <span>&copy; {new Date().getFullYear()} University of Fort Hare &middot; Residence Life &amp; Facilities Management</span>
+        <nav aria-label="Legal">
+          {INFO_LINKS.slice(2).map((link) => (
+            <InfoLink key={link.label} {...link} />
+          ))}
+        </nav>
+      </footer>
     </div>
   );
 }

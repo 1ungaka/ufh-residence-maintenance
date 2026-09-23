@@ -41,7 +41,7 @@ export function timeAgo(value) {
 
 /** Hours as a readable duration, used for the average resolution time. */
 export function formatHours(hours) {
-  if (hours === null || hours === undefined) return 'No completed requests yet';
-  if (hours < 24) return `${hours} hours`;
+  if (!hours) return 'no completed requests yet';
+  if (hours < 24) return `${Math.max(1, Math.round(hours))} hours`;
   return `${(hours / 24).toFixed(1)} days`;
 }
