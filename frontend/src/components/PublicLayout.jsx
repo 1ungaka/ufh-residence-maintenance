@@ -12,7 +12,10 @@ export default function PublicLayout({ children }) {
         <Link to="/login" className="brand brand-link">
           <Emblem size={48} />
           <div className="brand-text">
-            <div className="line1">University of Fort Hare</div>
+            <div className="line1">
+              <span className="brand-full">University of Fort Hare</span>
+              <span className="brand-short" aria-hidden="true">UFH Residence</span>
+            </div>
             <div className="line2">Residence Maintenance</div>
           </div>
         </Link>

@@ -131,6 +131,8 @@ a:hover { color: var(--blue-500); }
 }
 
 .brand-text .line2 { font-size: 0.73rem; color: #a9c4e0; letter-spacing: 0.04em; white-space: nowrap; }
+.brand-short { display: none; }
+.user-chip button, .topbar-signin { white-space: nowrap; flex: none; }
 
 .emblem { flex: none; display: block; }
 
@@ -293,6 +295,7 @@ a:hover { color: var(--blue-500); }
 .legal .info-section h2 { font-size: 1.02rem; }
 
 
+.contact-grid .card { margin-bottom: 0; }
 .contact-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
 .contact-card { padding: 18px 20px; display: flex; flex-direction: column; }
 .contact-card > p { color: var(--ink-soft); font-size: 0.9rem; }
@@ -1077,8 +1080,10 @@ textarea.short { min-height: 72px; }
 @media (max-width: 600px) {
   .landing-top { padding: 12px 16px; }
   .landing-top::after { left: 16px; right: 16px; }
+  .landing-brand .line1 { font-size: 0.92rem; }
   .landing-brand .line2 { display: none; }
-  .landing-nav { gap: 12px; font-size: 0.82rem; }
+  .landing-brand .emblem { height: 44px; width: auto; }
+  .landing-nav { gap: 12px; font-size: 0.82rem; white-space: nowrap; }
   .landing-main { padding: 24px 16px 28px; gap: 20px; }
   .landing-steps li { font-size: 0.8rem; }
   .landing-card { padding: 22px 18px 18px; }
@@ -1101,7 +1106,13 @@ textarea.short { min-height: 72px; }
   .definitions { grid-template-columns: 1fr; gap: 2px; }
   .definitions dd { margin-bottom: 11px; }
   .brand-text .line2 { display: none; }
+  .brand-full { display: none; }
+  .brand-short { display: inline; }
+  .topbar { padding: 0 14px; }
   .user-chip .who { display: none; }
+  .stat-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .stat { padding: 13px 14px 12px; }
+  .stat .value { font-size: 1.7rem; }
   .toast { left: 16px; right: 16px; max-width: none; }
 }
 
