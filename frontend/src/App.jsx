@@ -60,9 +60,8 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/contact" element={<InfoPage><Contact /></InfoPage>} />
-      {/* Not PublicOnly: a correct reset code signs the user in, and they must be
-          allowed to carry on to /reset-password instead of being sent to the dashboard. */}
-      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/forgot-password" element={<PublicOnly><ForgotPassword /></PublicOnly>} />
+      {/* Not PublicOnly: the reset link signs the user in, and they must stay here to set a password. */}
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/terms" element={<InfoPage><Terms /></InfoPage>} />
       <Route path="/privacy" element={<InfoPage><Privacy /></InfoPage>} />

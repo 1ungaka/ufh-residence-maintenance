@@ -1,6 +1,7 @@
 /**
- * Choose a new password. Reached either after typing the reset code, or from the
- * email's button, which links here with ?token_hash=...&type=recovery.
+ * Choose a new password. Opened from the reset email: Supabase's default link
+ * signs the user in automatically; the custom template's button links here with
+ * ?token_hash=...&type=recovery, which is exchanged for a session below.
  */
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
@@ -25,7 +26,7 @@ export default function ResetPassword() {
   // drop it from the address bar so it isn't left in history.
   useEffect(() => {
     if (!tokenHash) return;
-    verifyRecovery({ tokenHash })
+    verifyRecovery(tokenHash)
       .catch(() => {})
       .finally(() => {
         setParams({}, { replace: true });
@@ -40,10 +41,10 @@ export default function ResetPassword() {
     return (
       <AuthCard
         title="Link expired"
-        lede="This reset link is invalid or has already been used. Reset links and codes only work once and expire after an hour."
+        lede="This reset link is invalid or has already been used. Reset links only work once and expire after an hour."
       >
         <div className="auth-card-actions">
-          <Link className="btn btn-gold btn-block" to="/forgot-password">Send a new code</Link>
+          <Link className="btn btn-gold btn-block" to="/forgot-password">Send a new link</Link>
           <Link to="/login" className="btn-link">Back to sign in</Link>
         </div>
       </AuthCard>

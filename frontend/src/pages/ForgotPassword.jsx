@@ -1,28 +1,24 @@
 /**
- * Step 1: enter your university email. Step 2: type the 6-digit code from the
- * reset email. A correct code signs you in and moves on to /reset-password.
+ * Enter your university email and Supabase emails a reset link. The link opens
+ * /reset-password, already signed in, where a new password is chosen.
  */
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { Alert } from '../components/Ui.jsx';
 import AuthCard from '../components/AuthCard.jsx';
 import { emailError, normaliseEmail } from '../utils/emails.js';
 
 export default function ForgotPassword() {
-  const { requestPasswordReset, verifyRecovery } = useAuth();
-  const navigate = useNavigate();
+  const { requestPasswordReset } = useAuth();
   const [email, setEmail] = useState('');
-  const [code, setCode] = useState('');
-  const [step, setStep] = useState('email');
+  const [sentTo, setSentTo] = useState('');
   const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
 
-  const sendCode = async (event) => {
+  const sendLink = async (event) => {
     event?.preventDefault();
     setError('');
-    setNotice('');
 
     const cleanEmail = normaliseEmail(email);
     const formatError = emailError(cleanEmail);
@@ -34,11 +30,9 @@ export default function ForgotPassword() {
     setBusy(true);
     try {
       await requestPasswordReset(cleanEmail);
-      setEmail(cleanEmail);
-      setStep('code');
-      if (event === undefined) setNotice('We sent you a new code.');
+      setSentTo(cleanEmail);
     } catch (err) {
-      setError(/rate limit|too many/i.test(err.message)
+      setError(/rate limit|too many|seconds/i.test(err.message)
         ? 'Too many requests. Please wait a minute and try again.'
         : err.message);
     } finally {
@@ -46,68 +40,28 @@ export default function ForgotPassword() {
     }
   };
 
-  const checkCode = async (event) => {
-    event.preventDefault();
-    setError('');
-    setNotice('');
-
-    if (!/^\d{6,10}$/.test(code)) {
-      setError('Enter the code exactly as it appears in the email.');
-      return;
-    }
-
-    setBusy(true);
-    try {
-      await verifyRecovery({ email, code });
-      navigate('/reset-password', { replace: true });
-    } catch {
-      setError('That code is wrong or has expired. Check the latest email, or send a new code.');
-      setBusy(false);
-    }
-  };
-
-  if (step === 'code') {
+  if (sentTo) {
     return (
-      <AuthCard
-        title="Enter your code"
-        lede={<>We sent a code to <strong>{email}</strong>. It expires in one hour.</>}
-      >
-        <form onSubmit={checkCode} noValidate>
-          {error && <Alert type="error">{error}</Alert>}
-          {notice && <Alert type="success">{notice}</Alert>}
-          <div className="field">
-            <label htmlFor="reset-code">Reset code</label>
-            <input
-              id="reset-code"
-              className="code-input"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              maxLength={10}
-              value={code}
-              placeholder="000000"
-              onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
-              autoFocus
-            />
-            <p className="hint">Can&rsquo;t find it? Check your junk or spam folder.</p>
-          </div>
-          <div className="auth-card-actions">
-            <button type="submit" className="btn btn-gold btn-block" disabled={busy}>
-              {busy ? 'Checking...' : 'Continue'}
+      <AuthCard title="Check your email">
+        <div className="sent-box">
+          <p>
+            If an account exists for <strong>{sentTo}</strong>, we have sent a link to reset your
+            password. Open it on this device to choose a new one.
+          </p>
+          <p>The link expires in one hour. Can&rsquo;t find it? Check your junk or spam folder.</p>
+        </div>
+        {error && <Alert type="error">{error}</Alert>}
+        <div className="auth-card-actions">
+          <Link className="btn btn-gold btn-block" to="/login">Back to sign in</Link>
+          <div className="auth-card-row">
+            <button type="button" className="btn-link" onClick={() => sendLink()} disabled={busy}>
+              {busy ? 'Sending...' : 'Send the link again'}
             </button>
-            <div className="auth-card-row">
-              <button type="button" className="btn-link" onClick={() => sendCode()} disabled={busy}>
-                Send a new code
-              </button>
-              <button
-                type="button"
-                className="btn-link"
-                onClick={() => { setStep('email'); setCode(''); setError(''); setNotice(''); }}
-              >
-                Use a different email
-              </button>
-            </div>
+            <button type="button" className="btn-link" onClick={() => { setSentTo(''); setError(''); }}>
+              Use a different email
+            </button>
           </div>
-        </form>
+        </div>
       </AuthCard>
     );
   }
@@ -115,9 +69,9 @@ export default function ForgotPassword() {
   return (
     <AuthCard
       title="Reset your password"
-      lede="Enter your student or staff email and we will send you a code to choose a new password."
+      lede="Enter your student or staff email and we will send you a link to choose a new password."
     >
-      <form onSubmit={sendCode} noValidate>
+      <form onSubmit={sendLink} noValidate>
         {error && <Alert type="error">{error}</Alert>}
         <div className="field">
           <label htmlFor="reset-email">University email</label>
@@ -135,7 +89,7 @@ export default function ForgotPassword() {
         </div>
         <div className="auth-card-actions">
           <button type="submit" className="btn btn-gold btn-block" disabled={busy}>
-            {busy ? 'Sending...' : 'Send code'}
+            {busy ? 'Sending...' : 'Send reset link'}
           </button>
           <Link to="/login" className="btn-link">Back to sign in</Link>
         </div>

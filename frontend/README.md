@@ -40,7 +40,7 @@ Other scripts:
 
 Pick the matching role on the sign-in page. Staff accounts need
 `"role": "maintenance"` (or `tradesperson`) in their Supabase user metadata.
-Forgotten passwords are reset with a 6-digit code sent by email.
+Forgotten passwords are reset with a link sent by email.
 
 ## Supabase setup (one-off, for whoever manages the project)
 
@@ -49,9 +49,10 @@ Files in [`../docs/supabase`](../docs/supabase):
 - **`storage-policies.sql`**: run in the SQL Editor so students can upload
   fault photos (fixes "new row violates row-level security policy").
 - **`reset-password-email.html`**: paste into Authentication → Email
-  Templates → Reset Password, so the email carries the 6-digit code and a
-  link back to the portal. Set Authentication → URL Configuration → Site URL
-  to the address the app runs on.
+  Templates → Reset Password, so the email is UFH-branded and its button
+  links straight to the portal. Set Authentication → URL Configuration →
+  Site URL to the address the app runs on, and add
+  `<that address>/reset-password` under Redirect URLs.
 
 ## Where things are
 

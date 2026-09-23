@@ -3,6 +3,7 @@
  * Supabase automatically manages local storage tokens and session validation.
  */
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient.js'; // Ensure this path points to your new Supabase client
 import { portalRole } from '../utils/roles.js';
 
@@ -11,6 +12,7 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
   // True while login() checks the account's role, so a wrong-role sign-in
   // never reaches the rest of the app before it is signed back out.
   const verifyingRole = useRef(false);
@@ -23,13 +25,17 @@ export function AuthProvider({ children }) {
     });
 
     // 2. Automatically listen for login, logout, and token expiration events
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (verifyingRole.current) return;
       setUser(session?.user ?? null);
+      // Opened from a reset-password email: go and choose a new password,
+      // wherever in the app the link happened to land.
+      if (event === 'PASSWORD_RECOVERY') navigate('/reset-password', { replace: true });
     });
 
     // Cleanup the event listener when the component unmounts
     return () => subscription.unsubscribe();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // expectedRole is 'student' or 'maintenance', picked on the sign-in screen.
@@ -73,8 +79,8 @@ export function AuthProvider({ children }) {
     return data.user;
   };
 
-  // Emails a 6-digit code (and a link back to /reset-password). The email's wording
-  // comes from the template in docs/supabase/reset-password-email.html.
+  // Emails a reset link that brings the user back to /reset-password on this site.
+  // The email's wording comes from docs/supabase/reset-password-email.html.
   const requestPasswordReset = async (email) => {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/reset-password`,
@@ -82,13 +88,10 @@ export function AuthProvider({ children }) {
     if (error) throw error;
   };
 
-  // Either the code typed from the email, or the token_hash from the email's button.
-  // Success signs the user in so they can choose a new password.
-  const verifyRecovery = async ({ email, code, tokenHash }) => {
-    const params = tokenHash
-      ? { token_hash: tokenHash, type: 'recovery' }
-      : { email, token: code, type: 'recovery' };
-    const { error } = await supabase.auth.verifyOtp(params);
+  // For links that carry ?token_hash=... (the custom email template's button).
+  // Supabase's default links are handled automatically when the page loads.
+  const verifyRecovery = async (tokenHash) => {
+    const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: 'recovery' });
     if (error) throw error;
   };
 
