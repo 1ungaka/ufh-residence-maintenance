@@ -21,6 +21,7 @@ The written documentation lives in the project root:
 | `supabase/README.md` | Live data model, one-off Supabase setup, security controls and known gaps |
 | `supabase/storage-policies.sql` | Storage policies that allow fault photo uploads |
 | `supabase/reset-password-email.html` | UFH-branded password reset email template |
+| `testing/final-system-tests.md` | Functional tests and user acceptance testing of the live system |
 
 ## Diagrams
 
