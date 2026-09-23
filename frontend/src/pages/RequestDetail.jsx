@@ -8,6 +8,8 @@ import { supabase } from '../supabaseClient.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { Alert, SkeletonTable, StatusBadge, Timeline, Toast, UrgencyLabel } from '../components/Ui.jsx';
 import { formatDateTime, timeAgo } from '../utils/format.js';
+import { isStaff } from '../utils/roles.js';
+import { defaultStatusText, parseUpdate, statusMessage, STATUS_HEADLINE } from '../utils/updates.js';
 
 /** Mapped to your Supabase database enum states */
 const NEXT_STATUS = {
@@ -25,6 +27,7 @@ export default function RequestDetail() {
   const [data, setData] = useState(null);
   const [note, setNote] = useState('');
   const [statusComment, setStatusComment] = useState('');
+  const [visitNote, setVisitNote] = useState('');
   const [error, setError] = useState('');
   const [message, setMessage] = useState(location.state?.flash || '');
   const [busy, setBusy] = useState(false);
@@ -39,18 +42,55 @@ export default function RequestDetail() {
 
     if (tErr) throw tErr;
 
+    const { data: category } = await supabase
+      .from('categories')
+      .select('name')
+      .eq('id', ticket.category_id)
+      .maybeSingle();
+
     const { data: history, error: hErr } = await supabase
       .from('ticket_updates')
-      .select('*, author:profiles!updated_by(full_name)')
+      .select('*, author:profiles!updated_by(full_name, role)')
       .eq('ticket_id', id)
       .order('created_at', { ascending: true });
 
     if (hErr) throw hErr;
 
+    const studentName = ticket.reporter?.full_name || 'Student';
+
+    // The ticket itself is the first entry, so the history always starts at "Fault logged".
+    const timeline = [
+      {
+        id: 'logged',
+        created_at: ticket.created_at,
+        status: 'logged',
+        headline: STATUS_HEADLINE.logged,
+        text: '',
+        author_name: studentName,
+        author_is_student: true
+      },
+      ...history.map((u) => {
+        const { status, text } = parseUpdate(u.update_message);
+        const fromStudent = u.updated_by === ticket.reported_by;
+        const name = u.author?.full_name || (fromStudent ? studentName : 'Maintenance staff');
+        return {
+          id: u.id,
+          created_at: u.created_at,
+          status,
+          headline: status
+            ? STATUS_HEADLINE[status] || 'Status changed'
+            : fromStudent ? 'Comment from the student' : `Update from ${name.split(' ')[0]}`,
+          text,
+          author_name: name,
+          author_is_student: fromStudent
+        };
+      })
+    ];
+
     return {
       request: {
         id: ticket.id,
-        category: ticket.category_id,
+        category: category?.name || 'General',
         residence: ticket.residence_building,
         room: ticket.room_number,
         urgency: ticket.urgency,
@@ -62,16 +102,12 @@ export default function RequestDetail() {
         student_name: ticket.reporter?.full_name || 'Student',
         student_email: ticket.reporter?.student_number ? `${ticket.reporter.student_number}@ufh.ac.za` : '',
         assigned_to: ticket.assigned_to,
+        reported_by: ticket.reported_by,
         assigned_name: ticket.assignee?.full_name,
         assigned_trade: ticket.assignee?.role,
         photo_url: ticket.photo_url
       },
-      updates: history.map(u => ({
-        id: u.id,
-        created_at: u.created_at,
-        author_name: u.author?.full_name || 'Staff',
-        message: u.update_message
-      }))
+      updates: timeline
     };
   };
 
@@ -92,6 +128,7 @@ export default function RequestDetail() {
       setMessage(successMessage);
       setNote('');
       setStatusComment('');
+      setVisitNote('');
     } catch (err) {
       setError(err.message);
     } finally {
@@ -99,20 +136,38 @@ export default function RequestDetail() {
     }
   };
 
-  // Supabase action functions to replace your previous API calls
-  const assignToMe = async () => {
-    await supabase.from('maintenance_tickets').update({ assigned_to: user.id, status: 'assigned' }).eq('id', id);
-    await supabase.from('ticket_updates').insert({ ticket_id: id, updated_by: user.id, update_message: 'Job assigned and claimed.' });
+  const myName = user?.user_metadata?.full_name;
+
+  // Row-level security can silently match zero rows instead of raising an error,
+  // so ask for the updated row back and treat "nothing came back" as refused.
+  const updateTicket = async (changes) => {
+    const { data: rows, error: err } = await supabase
+      .from('maintenance_tickets')
+      .update(changes)
+      .eq('id', id)
+      .select('id');
+    if (err) throw err;
+    if (!rows || rows.length === 0) throw new Error('You are not allowed to change this request.');
+  };
+
+  const postUpdate = async (updateMessage) => {
+    const { error: err } = await supabase
+      .from('ticket_updates')
+      .insert({ ticket_id: id, updated_by: user.id, update_message: updateMessage });
+    if (err) throw err;
+  };
+
+  const assignToMe = async (visitNote) => {
+    await updateTicket({ assigned_to: user.id, status: 'assigned' });
+    await postUpdate(statusMessage('assigned', visitNote.trim() || defaultStatusText('assigned', myName)));
   };
 
   const updateStatus = async (newStatus, comment) => {
-    await supabase.from('maintenance_tickets').update({ status: newStatus }).eq('id', id);
-    await supabase.from('ticket_updates').insert({ ticket_id: id, updated_by: user.id, update_message: comment || `Status changed to ${newStatus.replace('_', ' ')}.` });
+    await updateTicket({ status: newStatus });
+    await postUpdate(statusMessage(newStatus, comment.trim() || defaultStatusText(newStatus, myName)));
   };
 
-  const addNote = async (noteText) => {
-    await supabase.from('ticket_updates').insert({ ticket_id: id, updated_by: user.id, update_message: noteText });
-  };
+  const addNote = (noteText) => postUpdate(noteText.trim());
 
   if (error && !data) return <Alert type="error">{error}</Alert>;
   if (!data) {
@@ -124,8 +179,10 @@ export default function RequestDetail() {
   }
 
   const { request, updates } = data;
-  const isMaintenance = ['maintenance', 'tradesperson', 'facilities_admin'].includes(user?.user_metadata?.role);
+  const isMaintenance = isStaff(user);
   const isMine = request.assigned_to === user.id;
+  const isReporter = !isMaintenance && request.reported_by === user.id;
+  const isOpen = request.status !== 'resolved';
   const next = NEXT_STATUS[request.status];
 
   return (
@@ -211,16 +268,27 @@ export default function RequestDetail() {
               <h2>Actions</h2>
 
               {!request.assigned_to && (
-                <>
+                <div className="field">
                   <p>No one has taken this job yet.</p>
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() => run(assignToMe, 'Job assigned to you.')}
-                  >
-                    Assign to me
-                  </button>
-                </>
+                  <label htmlFor="visit-note">Message to the student (optional)</label>
+                  <textarea
+                    id="visit-note"
+                    className="short"
+                    value={visitNote}
+                    onChange={(event) => setVisitNote(event.target.value)}
+                    placeholder="I'll come to your room tomorrow between 10:00 and 12:00. Please make sure someone is there."
+                  />
+                  <p className="hint">The student sees this in the request history and on their dashboard.</p>
+                  <div className="form-actions">
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => run(() => assignToMe(visitNote), 'Job accepted. The student can see your message.')}
+                    >
+                      Accept this job
+                    </button>
+                  </div>
+                </div>
               )}
 
               {request.assigned_to && !isMine && (
@@ -233,12 +301,15 @@ export default function RequestDetail() {
                 <>
                   {next ? (
                     <div className="field">
-                      <label htmlFor="status-comment">Note to go with the status change (optional)</label>
-                      <input
+                      <label htmlFor="status-comment">Message to the student (optional)</label>
+                      <textarea
                         id="status-comment"
+                        className="short"
                         value={statusComment}
                         onChange={(event) => setStatusComment(event.target.value)}
-                        placeholder="Replaced damaged light fitting."
+                        placeholder={next.status === 'resolved'
+                          ? 'Replaced the damaged light fitting. Everything is working again.'
+                          : 'On my way now. I will need about an hour.'}
                       />
                       <div className="form-actions">
                         <button
@@ -256,12 +327,14 @@ export default function RequestDetail() {
 
                   <div className="field" style={{ marginTop: '14px' }}>
                     <label htmlFor="note">Add a progress note</label>
-                    <input
+                    <textarea
                       id="note"
+                      className="short"
                       value={note}
                       onChange={(event) => setNote(event.target.value)}
-                      placeholder="Checked the light fitting. Replacement bulb required."
+                      placeholder="Checked the light fitting. Waiting for a replacement part, back on Thursday."
                     />
+                    <p className="hint">Progress notes are shown to the student.</p>
                     <div className="form-actions">
                       <button
                         type="button"
@@ -282,6 +355,29 @@ export default function RequestDetail() {
         <div className="card">
           <h2>History</h2>
           <Timeline updates={updates} />
+
+          {isReporter && isOpen && (
+            <div className="field timeline-reply">
+              <label htmlFor="student-comment">Add a comment for the tradesperson</label>
+              <textarea
+                id="student-comment"
+                className="short"
+                value={note}
+                onChange={(event) => setNote(event.target.value)}
+                placeholder="I'm in my room after 14:00 on weekdays. The light flickers before it goes off."
+              />
+              <div className="form-actions">
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  disabled={busy || note.trim().length < 3}
+                  onClick={() => run(() => addNote(note), 'Comment added.')}
+                >
+                  Add comment
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

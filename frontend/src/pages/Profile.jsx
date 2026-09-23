@@ -2,19 +2,20 @@ import { useState } from 'react';
 import { supabase } from '../supabaseClient.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { Alert } from '../components/Ui.jsx';
-import { RESIDENCES } from '../utils/residences.js';
+import ResidenceField from '../components/ResidenceField.jsx';
 import { formatDate } from '../utils/format.js';
+import { portalRole } from '../utils/roles.js';
 
 export default function Profile() {
   const { user } = useAuth();
   
   // Extract custom fields from Supabase's user_metadata object
-  const role = user?.user_metadata?.role || 'student';
+  const role = portalRole(user);
   const trade = user?.user_metadata?.trade || '';
 
   const [form, setForm] = useState({
     name: user?.user_metadata?.full_name || '',
-    residence: user?.user_metadata?.residence_building || RESIDENCES[0],
+    residence: user?.user_metadata?.residence_building || '',
     room: user?.user_metadata?.room_number || ''
   });
   
@@ -35,7 +36,7 @@ export default function Profile() {
       const { error: authError } = await supabase.auth.updateUser({
         data: {
           full_name: form.name,
-          residence_building: form.residence,
+          residence_building: form.residence.trim(),
           room_number: form.room
         }
       });
@@ -46,7 +47,7 @@ export default function Profile() {
         .from('profiles')
         .update({
           full_name: form.name,
-          residence_building: form.residence,
+          residence_building: form.residence.trim(),
           room_number: form.room
         })
         .eq('id', user.id);
@@ -91,14 +92,10 @@ export default function Profile() {
 
           {role === 'student' && (
             <div className="form-row">
-              <div className="field">
-                <label htmlFor="residence">Residence</label>
-                <select id="residence" value={form.residence} onChange={update('residence')}>
-                  {RESIDENCES.map((residence) => (
-                    <option key={residence}>{residence}</option>
-                  ))}
-                </select>
-              </div>
+              <ResidenceField
+                value={form.residence}
+                onChange={(residence) => setForm((current) => ({ ...current, residence }))}
+              />
               <div className="field">
                 <label htmlFor="room">Room number</label>
                 <input id="room" value={form.room} onChange={update('room')} required />

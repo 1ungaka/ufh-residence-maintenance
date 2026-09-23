@@ -2,14 +2,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { formatDateTime } from '../utils/format.js';
 
-/** University crest, served from public/images/UFH-Logos.png */
+/** University crest, served from public/images/UFH-Logos.png (134x110). `size` is the rendered height. */
 export function Emblem({ size = 36 }) {
   return (
     <img
       className="emblem"
       src="/images/UFH-Logos.png"
-      width={134}
-      height={110}
+      width={Math.round((size * 134) / 110)}
+      height={size}
       alt="University of Fort Hare"
       style={{ objectFit: 'contain' }}
     />
@@ -24,16 +24,31 @@ const STATUS_CLASS = {
   Closed: 'badge-closed'
 };
 
+// Supabase stores lower-case status codes; show them with the labels students know.
+const STATUS_LABEL = {
+  logged: 'Submitted',
+  assigned: 'Assigned',
+  in_progress: 'In Progress',
+  resolved: 'Completed',
+  closed: 'Closed'
+};
+
+export function statusLabel(status) {
+  return STATUS_LABEL[status] || status;
+}
+
 export function StatusBadge({ status }) {
+  const label = statusLabel(status);
   return (
-    <span className={`badge ${STATUS_CLASS[status] || 'badge-submitted'}`}>
+    <span className={`badge ${STATUS_CLASS[label] || 'badge-submitted'}`}>
       <span className="dot" />
-      {status}
+      {label}
     </span>
   );
 }
 
 export function UrgencyLabel({ urgency }) {
+  if (!urgency) return <span className="urgency">-</span>;
   return <span className={`urgency urgency-${urgency.toLowerCase()}`}>{urgency}</span>;
 }
 
@@ -131,6 +146,10 @@ export function Loading({ label = 'Loading' }) {
 }
 
 /** Update history on the request page; entries fade in one after another. */
+/**
+ * Each update: { id, created_at, status (or null for a note), headline, text,
+ * author_name, author_is_student }.
+ */
 export function Timeline({ updates }) {
   if (!updates || updates.length === 0) {
     return <p className="hint">No updates yet.</p>;
@@ -140,16 +159,16 @@ export function Timeline({ updates }) {
       {updates.map((update, index) => (
         <li
           key={update.id}
-          className={update.status ? 'is-status' : ''}
+          className={[
+            update.status ? `is-status status-${update.status}` : 'is-note',
+            update.author_is_student ? 'from-student' : ''
+          ].join(' ')}
           style={{ animationDelay: `${Math.min(index * 70, 420)}ms` }}
         >
-          <div className="when">{formatDateTime(update.created_at)}</div>
-          <div className="what">{update.comment}</div>
+          <div className="headline">{update.headline}</div>
+          {update.text && <p className="what">{update.text}</p>}
           <div className="who">
-            {update.author_name
-              ? `${update.author_name}${update.author_trade ? ` - ${update.author_trade}` : ''}`
-              : 'Student'}
-            {update.status ? ` - status: ${update.status}` : ''}
+            {update.author_name} &middot; {formatDateTime(update.created_at)}
           </div>
         </li>
       ))}

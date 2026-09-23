@@ -1,7 +1,9 @@
 /** Page frame: branded top bar, role-based side navigation, content area. */
-import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { Emblem, Icons } from './Ui.jsx';
+import Footer from './Footer.jsx';
+import { portalRole } from '../utils/roles.js';
 
 const STUDENT_LINKS = [
   { to: '/dashboard', label: 'Dashboard', icon: Icons.dashboard },
@@ -34,7 +36,7 @@ export default function Layout({ children }) {
 
   // Safely extract Supabase metadata
   const meta = user?.user_metadata || {};
-  const role = meta.role || 'student';
+  const role = portalRole(user);
   const fullName = meta.full_name || 'Student';
   const residence = meta.residence_building || 'Residence';
   const room = meta.room_number || '';
@@ -51,7 +53,7 @@ export default function Layout({ children }) {
     <div className="app">
       <header className="topbar">
         <div className="brand">
-          <Emblem size={34} />
+          <Emblem size={48} />
           <div className="brand-text">
             <div className="line1">University of Fort Hare</div>
             <div className="line2">Residence Maintenance</div>
@@ -87,10 +89,9 @@ export default function Layout({ children }) {
             ))}
           </nav>
 
-          <div className="sidebar-foot">
-            Residence Life &amp; Facilities Management
-            <br />
-            Alice &middot; East London &middot; Bhisho
+          <div className="sidebar-help">
+            <strong>Need help?</strong>
+            Questions about a request or your account? <Link to="/contact">Contact us</Link>
           </div>
         </aside>
 
@@ -99,6 +100,7 @@ export default function Layout({ children }) {
           <div className="content-inner rise" key={location.pathname}>
             {children}
           </div>
+          <Footer role={role} />
         </main>
       </div>
     </div>
