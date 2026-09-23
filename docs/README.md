@@ -30,3 +30,17 @@ the report or the slides.
 | `diagrams/architecture-diagram.md` | Deployment view, backend layers, screens to endpoints |
 
 All twelve Mermaid blocks were checked with the Mermaid parser and render without errors.
+
+### Final system diagrams (images)
+
+Drawn for the final Supabase version of the portal and used in the project documentation. Each
+comes as an `.svg` (sharp at any size, editable) and a `.png` (for Word and slides).
+
+| File | Diagram |
+|---|---|
+| `diagrams/architecture.*` | System architecture: browser, Vercel, Supabase Auth, database, Storage, Edge Function |
+| `diagrams/lifecycle.*` | Request life cycle: Submitted → Assigned → In Progress → Completed |
+| `diagrams/usecase.*` | Use case diagram: Student, Tradesperson, Facilities Management, Portal user |
+| `diagrams/activity-log-fault.*` | Activity diagram: a student logs a fault (with optional photo) |
+| `diagrams/activity-tradesperson.*` | Activity diagram: a tradesperson accepts, updates and completes a job |
+| `diagrams/activity-signin.*` | Activity diagram: sign in with role check, and password reset |
