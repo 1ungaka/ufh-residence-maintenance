@@ -611,7 +611,9 @@ button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
   box-shadow: var(--shadow-lg);
   animation: rise 0.45s ease both;
 }
+.auth-card.is-wide { max-width: 540px; }
 .auth-card h1 { font-size: 1.45rem; margin-bottom: 4px; }
+.auth-card-switch { font-size: 0.9rem; color: var(--muted); }
 .auth-card .lede { color: var(--muted); margin-bottom: 20px; }
 .auth-card-brand {
   display: flex;
